@@ -1,0 +1,17 @@
+:partner-solution-project-name: quickstart-cloud9-ide
+:partner-solution-github-org: aws-quickstart
+:partner-product-name: AWS Cloud9 Cloud-Based IDE
+:partner-product-short-name: Cloud9 IDE
+//:partner-company-name: Example Company Name, Ltd.
+:doc-month: August
+:doc-year: 2023
+:partner-contributors: John Smith, {partner-company-name}
+// :other-contributors: Akua Mansa, Trek10
+:aws-contributors: Jay Yeras, Jay McConnell, Tony Vattathil, AWS DevOps & AWS Integration and Automation
+//:aws-ia-contributors: Toni Jones, AWS Integration & Automation team
+:deployment_time: 30 minutes
+:default_deployment_region: us-east-1
+// :private_repo:
+
+
+// For instructions on creating this deployment guide, refer to "Build your AWS Partner Solution documentation" (https://aws-ia-us-west-2.s3.us-west-2.amazonaws.com/docs/content/index.html#/).

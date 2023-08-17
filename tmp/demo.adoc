@@ -1,0 +1,378 @@
+AWS Cloud9 Cloud-Based IDE
+
+Quick Start Reference Deployment
+
+October 2019
+
+Jay Yeras, Jay McConnell, Tony Vattathil, AWS DevOps & AWS Quick Start team
+
+____
+Visit our https://fwd.aws/bmP9A[GitHub repository] for source files and to post feedback, +
+report bugs, or submit feature ideas for this Quick Start.
+____
+
+== Contents
+
+link:#overview[Overview 2]
+
+link:#cost-and-licenses[Cost and licenses 2]
+
+link:#architecture[Architecture 2]
+
+link:#planning-the-deployment[Planning the deployment 4]
+
+link:#specialized-knowledge[Specialized knowledge 4]
+
+link:#aws-account[AWS account 4]
+
+link:#technical-requirements[Technical requirements 4]
+
+link:#deployment-options[Deployment options 6]
+
+link:#deployment-steps[Deployment steps 6]
+
+link:#step-1.-sign-in-to-your-aws-account[Step 1. Sign in to your AWS account 6]
+
+link:#step-2.-launch-the-quick-start[Step 2. Launch the Quick Start 7]
+
+link:#option-1-parameters-for-deploying-aws-cloud9-into-a-new-vpc[Option 1: Parameters for deploying AWS Cloud9 into a new VPC 8]
+
+link:#option-2-parameters-for-deploying-aws-cloud9-into-an-existing-vpc[Option 2: Parameters for deploying AWS Cloud9 into an existing VPC 9]
+
+link:#step-3.-test-the-deployment[Step 3. Test the deployment 11]
+
+link:#best-practices-for-using-aws-cloud9[Best practices for using AWS Cloud9 11]
+
+link:#security[Security 11]
+
+link:#troubleshooting[Troubleshooting 11]
+
+link:#send-us-feedback[Send us feedback 12]
+
+link:#additional-resources[Additional resources 12]
+
+link:#document-revisions[Document revisions 13]
+
+This Quick Start was developed by Amazon Web Services (AWS) solutions architects.
+
+http://aws.amazon.com/quickstart/[Quick Starts] are automated reference deployments that use AWS CloudFormation templates to deploy key technologies on AWS, following AWS best practices.
+
+== Overview
+
+This Quick Start reference deployment guide provides step-by-step instructions for deploying AWS Cloud9 with a custom Amazon Elastic Block Store (Amazon EBS) volume size and an optional virtual private cloud (VPC) into your AWS account.
+
+This Quick Start is for developers who want to deploy a cloud-based integrated development environment (IDE) that allows them to run and debug code from a browser while seamlessly sharing their development environment with their team.
+
+=== Cost and licenses
+
+You are responsible for the cost of the AWS services used while running this Quick Start reference deployment. There is no additional cost for using the Quick Start.
+
+The AWS CloudFormation template for this Quick Start includes configuration parameters that you can customize. Some of these settings, such as instance type, will affect the cost of deployment. For cost estimates, see the pricing pages for each AWS service you will be using. Prices are subject to change.
+
+*Tip* After you deploy the Quick Start, we recommend that you enable the https://docs.aws.amazon.com/awsaccountbilling/latest/aboutv2/billing-reports-gettingstarted-turnonreports.html[AWS Cost and Usage Report] to track costs associated with the Quick Start. This report delivers billing metrics to an S3 bucket in your account. It provides cost estimates based on usage throughout each month, and finalizes the data at the end of the month. For more information about the report, see the https://docs.aws.amazon.com/awsaccountbilling/latest/aboutv2/billing-reports-costusage.html[AWS documentation].
+
+== Architecture
+
+Deploying this Quick Start for a new VPC with *default parameters* builds the following environment in the AWS Cloud.
+
+image:extracted-media/media/image1.png[image,width=648,height=390]
+
+Figure 1: Quick Start architecture for AWS Cloud9
+
+The Quick Start sets up the following:
+
+* A highly available architecture that spans two Availability Zones.*
+* A VPC configured with public and private subnets according to AWS best practices, to provide you with your own virtual network on AWS. The private subnets are not used by this Quick Start, but you can use them for future deployments.*
+* In the public subnets:
+
+* Managed network address translation (NAT) gateways to allow outbound internet access for resources in the private subnets.*
+* (Optional) A Linux bastion host in an Auto Scaling group to allow inbound Secure Shell (SSH) access to Amazon Elastic Compute Cloud (Amazon EC2) instances in public and private subnets.*
+* A single instance of AWS Cloud9.
+
+* An AWS Identity and Access Management (IAM) role and policy that will be associated with your AWS Cloud9 instance.
+* AWS Lambda functions that run one-time https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/template-custom-resources.html[custom resources], at the time of stack creation, to perform the following operations:
+
+* Resizing the default Amazon EBS volume size for your AWS Cloud9 instance based on the input that you provide at stack launch.
+* Associating the instance profile.
+* Running a configurable bootstrap script against AWS Systems Manager Run Command.
+
+*** The template that deploys the Quick Start into an existing VPC skips the components marked by asterisks and prompts you for your existing VPC configuration.
+
+== Planning the deployment
+
+=== Specialized knowledge
+
+This Quick Start assumes familiarity with basic networking principles such as Classless Inter-Domain Routing (CIDR), subnets, and general security best practices.
+
+This deployment guide also requires a moderate level of familiarity with AWS services. If you’re new to AWS, visit the https://aws.amazon.com/getting-started/[Getting Started Resource Center] and the https://aws.amazon.com/training/[AWS Training and Certification website] for materials and programs that can help you develop the skills to design, deploy, and operate your infrastructure and applications on the AWS Cloud.
+
+=== AWS account
+
+If you don’t already have an AWS account, create one at https://aws.amazon.com/[https://aws.amazon.com] by following the on-screen instructions. Part of the sign-up process involves receiving a phone call and entering a PIN using the phone keypad.
+
+Your AWS account is automatically signed up for all AWS services. You are charged only for the services you use.
+
+=== Technical requirements
+
+Before you launch the Quick Start, your account must be configured as specified in the following table. Otherwise, deployment might fail.
+
+[cols=",",]
+|===
+|http://docs.aws.amazon.com/general/latest/gr/aws_service_limits.html[Resources] a|
+If necessary, request https://console.aws.amazon.com/support/home#/case/create?issueType=service-limit-increase&limitType=service-code-[service limit increases] for the following resources. You might need to do this if you already have an existing deployment that uses these resources, and you think you might exceed the default limits with this deployment. For default limits, see the https://docs.aws.amazon.com/[AWS documentation].
+
+https://console.aws.amazon.com/trustedadvisor/home?#/category/service-limits[AWS Trusted Advisor] offers a service limits check that displays your usage and limits for some aspects of some services.
+
+[cols=",",options="header",]
+|===
+|Resource |This deployment uses
+|VPCs |1
+|Elastic IP addresses |2
+|NAT gateways |2
+|Internet gateways |1
+|t2.micro instances |1
+|===
+
+|https://aws.amazon.com/about-aws/global-infrastructure/[Regions] |This deployment includes AWS Cloud9, which isn’t currently supported in all AWS Regions. For a current list of supported regions, see https://docs.aws.amazon.com/general/latest/gr/rande.html#cloud9_region[AWS Regions and Endpoints] in the AWS documentation.
+|https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/ec2-key-pairs.html[Key pair] a|
+Make sure that at least one Amazon EC2 key pair exists in your AWS account in the region where you are planning to deploy the Quick Start. Make note of the key pair name. You’ll be prompted for this information during deployment. To create a key pair, follow the https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/ec2-key-pairs.html[instructions in the AWS documentation].
+
+If you’re deploying the Quick Start for testing or proof-of-concept purposes, we recommend that you create a new key pair instead of specifying a key pair that’s already being used by a production instance.
+
+|https://docs.aws.amazon.com/IAM/latest/UserGuide/access_policies_job-functions.html[IAM permissions] |To deploy the Quick Start, you must log in to the AWS Management Console with IAM permissions for the resources and actions the templates will deploy. The _AdministratorAccess_ managed policy within IAM provides sufficient permissions, although your organization may choose to use a custom policy with more restrictions.
+|http://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-properties-s3-bucket.html[S3 buckets] |Unique S3 bucket names are automatically generated based on the account number and region. If you delete a stack, *the logging buckets are not deleted* (to support security review). If you plan to re-deploy this Quick Start in the same region, you must first manually delete the S3 buckets that were created during the previous deployment; *otherwise, the re-deployment will fail*.
+|===
+
+=== Deployment options
+
+This Quick Start provides two deployment options:
+
+* *Deploy AWS Cloud9 into a new VPC (end-to-end deployment)*. This option builds a new AWS environment consisting of the VPC, subnets, NAT gateways, security groups, bastion hosts, and other infrastructure components, and then deploys AWS Cloud9 into this new VPC.
+* *Deploy AWS Cloud9 into an existing VPC*. This option provisions AWS Cloud9 in your existing AWS infrastructure.
+
+The Quick Start provides separate templates for these options. It also lets you configure CIDR blocks, instance types, and AWS Cloud9 settings, as discussed later in this guide.
+
+== Deployment steps
+
+=== Step 1. Sign in to your AWS account
+
+[arabic]
+. Sign in to your AWS account at https://aws.amazon.com with an IAM user role that has the necessary permissions. For details, see link:#planning-the-deployment[Planning the deployment] earlier in this guide.
+. Make sure that your AWS account is configured correctly, as discussed in the link:#technical-requirements[Technical requirements] section.
+
+[arabic]
+. Use the region selector in the navigation bar to choose the AWS Region where you want to deploy AWS Cloud9.
+. Select the key pair that you created earlier. In the navigation pane of the https://console.aws.amazon.com/ec2/[Amazon EC2 console], choose *Key Pairs*, and then choose your key pair from the list.
+
+=== Step 2. Launch the Quick Start
+
+*Notes* The instructions in this section reflect the older version of the AWS CloudFormation console. If you’re using the redesigned console, some of the user interface elements might be different.
+
+You are responsible for the cost of the AWS services used while running this Quick Start reference deployment. There is no additional cost for using this Quick Start. For full details, see the pricing pages for each AWS service you will be using in this Quick Start. Prices are subject to change.
+
+[arabic]
+. Choose one of the following options to launch the AWS CloudFormation template into your AWS account. For help choosing an option, see link:#deployment-options[deployment options] earlier in this guide.
+
+[cols=",",]
+|===
+|https://fwd.aws/xVvND[Deploy AWS Cloud9 into a +
+new VPC on AWS] |https://fwd.aws/ADPz3[Deploy AWS Cloud9 into an +
+existing VPC on AWS]
+|===
+
+*Important* If you’re deploying AWS Cloud9 into an existing VPC, make sure that your VPC has two public subnets in different Availability Zones for the workload instances, and that the subnets aren’t shared. This Quick Start doesn’t support https://docs.aws.amazon.com/vpc/latest/userguide/vpc-sharing.html[shared subnets]. These subnets require https://docs.aws.amazon.com/vpc/latest/userguide/vpc-nat-gateway.html[NAT gateways] in their route tables, to allow the instances to download packages and software without exposing them to the internet. You will also need the domain name option configured in the DHCP options as explained in the http://docs.aws.amazon.com/AmazonVPC/latest/UserGuide/VPC_DHCP_Options.html[Amazon VPC documentation]. You will be prompted for your VPC settings when you launch the Quick Start.
+
+Each deployment takes about 30 minutes to complete.
+
+[arabic]
+. Check the region that’s displayed in the upper-right corner of the navigation bar, and change it if necessary. This is where the network infrastructure for AWS Cloud9 will be built. The template is launched in the US West (Oregon) Region by default.
+. On the *Select Template* page, keep the default setting for the template URL, and then choose *Next*.
+. On the *Specify Details* page, change the stack name if needed. Review the parameters for the template. Provide values for the parameters that require input. For all other parameters, review the default settings and customize them as necessary.
+
+In the following tables, parameters are listed by category and described separately for the two deployment options:
+
+* link:#option-1-parameters-for-deploying-aws-cloud9-into-a-new-vpc[Parameters for deploying AWS Cloud9 into a new VPC]
+* link:#option-2-parameters-for-deploying-aws-cloud9-into-an-existing-vpc[Parameters for deploying AWS Cloud9 into an existing VPC]
+
+When you finish reviewing and customizing the parameters, choose *Next*.
+
+==== Option 1: Parameters for deploying AWS Cloud9 into a new VPC
+
+https://fwd.aws/KyDnn[View template]
+
+____
+_VPC network configuration:_
+____
+
+[cols=",,",options="header",]
+|===
+|Parameter label (name) |Default |Description
+|Availability Zones +
+(AvailabilityZones) |_Requires input_ |List of Availability Zones to use for the subnets in the VPC. Only two Availability Zones are used for this deployment, and the logical order of your selections is preserved.
+|Number of Availability Zones +
+(NumberOfAZs) |2 |The number of Availability Zones to use in the VPC. This must match your selections in the list of Availability Zones parameter.
+|Private subnet 1 CIDR +
+(PrivateSubnet1CIDR) |10.0.0.0/19 |The CIDR block for private subnet 1 located in Availability Zone 1.
+|Private subnet 2 CIDR +
+(PrivateSubnet2CIDR) |10.0.32.0/19 |The CIDR block for private subnet 2 located in Availability Zone 2.
+|Public subnet 1 CIDR +
+(PublicSubnet1CIDR) |10.0.128.0/20 |The CIDR block for public subnet 1 located in Availability Zone 1.
+|Public subnet 2 CIDR +
+(PublicSubnet2CIDR) |10.0.144.0/19 |The CIDR block for public subnet 2 located in Availability Zone 2.
+|===
+
+____
+_Bastion configuration:_
+____
+
+[cols=",,",options="header",]
+|===
+|Parameter label (name) |Default |Description
+|Bastion entry point +
+(EnableBastionStack) |false |(Optional) Choose *true* to create a Linux bastion host.
+|Allowed external access CIDR (bastion access) +
+(RemoteAccessCIDR) |_Requires input_ |The CIDR IP range that is permitted to access the instances. We recommend that you set this value to a trusted IP range.
+|===
+
+____
+_AWS Cloud9 configuration:_
+____
+
+[cols=",,",options="header",]
+|===
+|Parameter label (name) |Default |Description
+|Cloud9 instance type +
+(C9InstanceType) |t2.micro |The instance type of the new Amazon EC2 instance that AWS Cloud9 launches for the development environment.
+|Stop time +
+(C9StopTime) |30 |The number of minutes until the running instance is shut down after the environment has last been used.
+|EBS volume size +
+(EBSVolumeSize) |100 |The desired size (in GB) of the Amazon EBS volume for your Cloud9 IDE.
+|===
+
+____
+_AWS Quick Start configuration:_
+____
+
+*Note* We recommend that you keep the default settings for the following two parameters, unless you are customizing the Quick Start templates for your own deployment projects. Changing the settings of these parameters will automatically update code references to point to a new Quick Start location. For additional details, see the https://aws-quickstart.github.io/option1.html[AWS Quick Start Contributor’s Guide].
+
+[cols=",,",options="header",]
+|===
+|Parameter label (name) |Default |Description
+|Quick Start S3 bucket name +
+(QSS3BucketName) |aws-quickstart |The S3 bucket you created for your copy of Quick Start assets, if you decide to customize or extend the Quick Start for your own use. The bucket name can include numbers, lowercase letters, uppercase letters, and hyphens, but should not start or end with a hyphen.
+|Quick Start S3 key prefix +
+(QSS3KeyPrefix) |quickstart-cloud9-ide/ |The https://docs.aws.amazon.com/AmazonS3/latest/dev/UsingMetadata.html[S3 key name prefix] used to simulate a folder for your copy of Quick Start assets, if you decide to customize or extend the Quick Start for your own use. This prefix can include numbers, lowercase letters, uppercase letters, hyphens, and forward slashes.
+|===
+
+==== Option 2: Parameters for deploying AWS Cloud9 into an existing VPC
+
+https://fwd.aws/M3jBA[View template]
+
+____
+_AWS Cloud9 configuration:_
+____
+
+[cols=",,",options="header",]
+|===
+|Parameter label (name) |Default |Description
+|Cloud9 instance type +
+(C9InstanceType) |t2.micro |The instance type of the new Amazon EC2 instance that AWS Cloud9 will launch for the development environment.
+|Stop time +
+(C9StopTime) |30 |The number of minutes until the running instance is shut down after the environment has last been used.
+|Public subnet ID +
+(C9Subnet) |_Requires input_ |The ID of the public subnet where your Cloud9 IDE will be installed.
+|EBS volume size +
+(EBSVolumeSize) |100 |The desired size (in GB) of the Amazon EBS volume for your Cloud9 IDE.
+|Bootstrap script S3 URI +
+(BootstrapScriptS3Uri) |_Optional_ |S3 URI to a shell script that will be executed on the Cloud 9 instance. If left blank, no custom boostrap will be run.
+|Bootstrap script arguments +
+(BootstrapArguments) |_Optional_ |Arguments string to pass to the bootstrap script.
+|===
+
+____
+_AWS Quick Start configuration:_
+____
+
+*Note* We recommend that you keep the default settings for the following two parameters, unless you are customizing the Quick Start templates for your own deployment projects. Changing the settings of these parameters will automatically update code references to point to a new Quick Start location. For additional details, see the https://aws-quickstart.github.io/option1.html[AWS Quick Start Contributor’s Guide].
+
+[cols=",,",options="header",]
+|===
+|Parameter label (name) |Default |Description
+|Output S3 Bucket Name +
+(OutputBucketName) |_Optional_ |The name of the bucket where the zip file outsput should be placed. If left blank, a bucket name will be automatically generated.
+|Quick Start S3 bucket name +
+(QSS3BucketName) |aws-quickstart |The S3 bucket you have created for your copy of Quick Start assets, if you decide to customize or extend the Quick Start for your own use. The bucket name can include numbers, lowercase letters, uppercase letters, and hyphens, but should not start or end with a hyphen.
+|Quick Start S3 key prefix +
+(QSS3KeyPrefix) |quickstart-cloud9-ide/ |The https://docs.aws.amazon.com/AmazonS3/latest/dev/UsingMetadata.html[S3 key name prefix] used to simulate a folder for your copy of Quick Start assets, if you decide to customize or extend the Quick Start for your own use. This prefix can include numbers, lowercase letters, uppercase letters, hyphens, and forward slashes.
+|===
+
+[arabic, start=4]
+. On the *Options* page, you can https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-properties-resource-tags.html[specify tags] (key-value pairs) for resources in your stack and https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/cfn-console-add-tags.html[set advanced options]. When you’re done, choose *Next*.
+. On the *Review* page, review and confirm the template settings. Under *Capabilities*, select the two check boxes to acknowledge that the template will create IAM resources and that it might require the capability to auto-expand macros.
+. Choose *Create* to deploy the stack.
+. Monitor the status of the stack. When the status is *CREATE_COMPLETE*, the AWS Cloud9 instance is ready.
+
+=== Step 3. Test the deployment
+
+Upon successful completion of the CloudFormation stack, you will be able to navigate to the https://console.aws.amazon.com/cloud9[AWS Cloud9 Console] and log in to your new instance.
+
+== Best practices for using AWS Cloud9
+
+The architecture built by this Quick Start supports AWS best practices for high availability and security. We recommend that you adhere to the following best practices:
+
+* Do not make any changes to the AWS resources created by this Quick Start directly on the AWS Management Console, command-line interface, or SDK.
+* Do not place your AWS Cloud9 IDE in a public subnet.
+
+== Security
+
+This Quick Start adheres to AWS best practices and leverages https://docs.aws.amazon.com/IAM/latest/UserGuide/id_roles_use_switch-role-ec2_instance-profiles.html[EC2 instance profiles] for your AWS Cloud9 instance. Any changes to the associated IAM profiles and policies created at time of deployment may negatively impact your security posture and are not recommended.
+
+== Troubleshooting
+
+*Q.* I encountered a CREATE_FAILED error when I launched the Quick Start.
+
+*A.* If AWS CloudFormation fails to create the stack, we recommend that you relaunch the template with *Rollback on failure* set to *No*. (This setting is under *Advanced* in the AWS CloudFormation console, *Options* page.) With this setting, the stack’s state will be retained and the instance will be left running, so you can troubleshoot the issue.
+
+*Important* When you set *Rollback on failure* to *No*, you will continue to incur AWS charges for this stack. Please make sure to delete the stack when you finish troubleshooting.
+
+For additional information, see https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/troubleshooting.html[Troubleshooting AWS CloudFormation] on the AWS website.
+
+*Q.* I encountered a size limitation error when I deployed the AWS CloudFormation templates.
+
+*A.* We recommend that you launch the Quick Start templates from the links in this guide or from another S3 bucket. If you deploy the templates from a local copy on your computer or from a non-S3 location, you might encounter template size limitations when you create the stack. For more information about AWS CloudFormation limits, see the http://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/cloudformation-limits.html[AWS documentation].
+
+== Send us feedback
+
+To post feedback, submit feature ideas, or report bugs, use the *Issues* section of the https://fwd.aws/bmP9A[GitHub repository] for this Quick Start. If you’d like to submit code, please review the https://aws-quickstart.github.io/[Quick Start Contributor’s Guide].
+
+== Additional resources
+
+*AWS resources*
+
+* {blank}
+* https://aws.amazon.com/getting-started/[Getting Started Resource Center]https://docs.aws.amazon.com/general/latest/gr/[AWS General Reference]
+* https://docs.aws.amazon.com/general/latest/gr/glos-chap.html[AWS Glossary]
+
+*AWS services*
+
+* {blank}
+* https://docs.aws.amazon.com/cloudformation/[AWS CloudFormation]https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/AmazonEBS.html[Amazon EBS]
+* https://docs.aws.amazon.com/ec2/[Amazon EC2]
+* https://docs.aws.amazon.com/iam/[IAM]
+* https://docs.aws.amazon.com/vpc/[Amazon VPC]
+* https://docs.aws.amazon.com/lambda/[AWS Lambda]
+* https://docs.aws.amazon.com/cloud9/latest/user-guide/language-support.html[AWS Cloud9]
+
+*Other Quick Start reference deployments*
+
+* https://aws.amazon.com/quickstart/[AWS Quick Start home page]
+
+== Document revisions
+
+[cols=",,",options="header",]
+|===
+|Date |Change |In sections
+|October 2019 |Added custom resources |link:#architecture[Architecture] +
+link:#step-2.-launch-the-quick-start[Step 2]
+|May 2019 |Initial publication |—
+|===
